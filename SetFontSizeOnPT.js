@@ -1,11 +1,15 @@
 function SetFontSizeOnPt(fontSize){
   var selection= window.getSelection().getRangeAt(0);
   var tcon = getTextContainersInRange(selection);
+  var scon =getSpansInRange(selection);
+
   if(tcon.length>0){
     if(tcon.length==1){
        setFontSizeOnlyOneContainer(tcon[0], fontSize, selection.startOffset, selection.endOffset);
     }else{
       for(var i=0;i<tcon.length;i++){
+       // console.log(tcon[i]);
+       // console.log(getParentSpan(selection,tcon[i]));
         if(i==0){
           setFontSizeOnlyOneContainer(tcon[0], fontSize, selection.startOffset, null);
         }else if(i==tcon.length-1){
@@ -13,27 +17,33 @@ function SetFontSizeOnPt(fontSize){
         }else{
            setFontSizeOnlyOneContainer(tcon[i], fontSize, null, null);
         }
-
-
-  }
+      }
     }
   }
 
- /* var arrR=getNodesInRange(selection);
-  if(arrR.length>1){
-    for(var i=0;i<arrR.length;i++){
-    console.log(arrR[i]);
-    if(i==0){
-      setFontSizeOnlyOneContainer(arrR[i], fontSize, selection.startOffset, null);
-    }else if(i==arrR.length-1){
-      setFontSizeOnlyOneContainer(arrR[i], fontSize, null, selection.endOffset);
-    }else{
-      setFontSizeOnlyOneContainer(arrR[i], fontSize, null, null);
+  for(var i=0;i<scon.length;i++){
+    //console.log(scon[i]);
+    if(scon[i].textContent.length==0){
+      scon[i].remove();
+    }
+    if(getParentSpan(selection,scon[i])!=null){
+      console.log(getParentSpan(selection,scon[i]));
+    }
+    if(scon[i].childNodes.length>0){
+
+      for(var j=0;j<scon[i].childNodes.length;j++){
+        if(scon[i].childNodes[j].textContent.length==0){
+          scon[i].childNodes[j].remove();
+        }else{
+          if(isElementSPAN(scon[i].childNodes[j])){
+            //console.log(scon[i].childNodes[j].innerHTML)
+          }
+
+        }
+      }
     }
   }
-  }else if(arrR.length==1){
-    setFontSizeOnlyOneContainer(arrR[0], fontSize, selection.startOffset, null);
-  }   */
+
 }
 
 function setFontSizeOnlyOneContainer(element, fontSize, startOffset, endOffset){
@@ -45,8 +55,11 @@ function setFontSizeOnlyOneContainer(element, fontSize, startOffset, endOffset){
   if(endOffset!=null){
     endT=endOffset;
   }
+
+  RemoveAnotherSpan(element, fontSize, startT, endT);
+
 	var eSpan =isElementSPAN(element)||isElementSPAN(element.parentElement);
-	var allE =startT==0 && endT==element.textContent.length;
+	var allE =startT==0 && endT==element.parentElement.textContent.length;
 	if(eSpan&&allE){
 		if(isElementSPAN(element)){
 			element.style.fontSize=fontSize+'pt';
@@ -54,7 +67,6 @@ function setFontSizeOnlyOneContainer(element, fontSize, startOffset, endOffset){
 			element.parentElement.style.fontSize=fontSize+'pt';
 		}
 	}else{
-
 		var ostn =document.createTextNode(element.textContent.substring(0,startT));
 		var spst =CreateSpan(element.textContent.substring(startT, endT),fontSize);
 		var ostk=document.createTextNode(element.textContent.substring(endT));
@@ -78,12 +90,18 @@ function setFontSizeOnlyOneContainer(element, fontSize, startOffset, endOffset){
 		}
 
 	}
+
 }//for text in only one
 
 function RemoveAnotherSpan(element, fontSize, startOffset, endOffset){
-  if(startOffset==0&&endOffset==element.textContent){
+  if(startOffset==0&&endOffset==element.textContent.length){
+    if(isElementSPAN(element)){
 
+       }else if(isElementSPAN(element.parentElement)&&isElementSPAN(element.parentElement.parentElement)){
+          //&&element.parentElement.parentElement.style.fontSize==fontSize+'pt'
+    //console.log(element.parentElement);
   }
+}
 }
 
 function isElementSPAN(element){
@@ -119,16 +137,6 @@ function getNodesInRange(range){
     var nodes = [];
     var node;
 
-   /* // walk parent nodes from start to common ancestor
-    for (node = start.parentNode; node; node = node.parentNode){
-       if (node == commonAncestor)
-            break;
-        nodes.push(node);
-
-    }
-    nodes.reverse();*/
-
-    // walk children and siblings from start until end is found
     for (node = start; node; node = getNextNode(node))
     {
         nodes.push(node);
@@ -147,5 +155,38 @@ function getTextContainersInRange(range){
        res.push(arrR[i]);
      }
    }
+  return res;
+}
+
+function getSpansInRange(range){
+   var res=[];
+   var arrR=getNodesInRange(range);
+  for(var i=0;i<arrR.length;i++){
+    if(isElementSPAN(arrR[i])){
+      res.push(arrR[i]);
+    }
+  }
+
+  return res;
+}
+
+function getParentSpan(range,element){
+  var res=null;
+  var start = range.startContainer;
+  var end = range.commonAncestorContainer;
+  var commonAncestor = range.commonAncestorContainer;
+  var node;
+  var i=0;
+  for (node = element; node; node = node.parentNode){
+    if (node == end){break;}else{
+      if(isElementSPAN(node)&&i>0){
+        res=node;
+        break;
+      }
+    }
+    i++;
+  }
+
+
   return res;
 }
