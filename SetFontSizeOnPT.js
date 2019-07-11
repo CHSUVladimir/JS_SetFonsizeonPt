@@ -1,129 +1,87 @@
 function SetFontSizeOnPt(fontSize){
   var selection= window.getSelection().getRangeAt(0);
-  var tcon = getTextContainersInRange(selection);
-  var scon =getSpansInRange(selection);
+  var firstParagraph=getParentParagraph(selection.commonAncestorContainer, selection.startContainer);
 
-  if(tcon.length>0){
-    if(tcon.length==1){
-       setFontSizeOnlyOneContainer(tcon[0], fontSize, selection.startOffset, selection.endOffset);
+  if(firstParagraph!=null){
+    if(firstParagraph.textContent.trim()==selection.toString().trim()){
+      console.log("only one");
+      setFSParagraph(firstParagraph, fontSize);
     }else{
-      for(var i=0;i<tcon.length;i++){
-       // console.log(tcon[i]);
-       // console.log(getParentSpan(selection,tcon[i]));
-        if(i==0){
-          setFontSizeOnlyOneContainer(tcon[0], fontSize, selection.startOffset, null);
-        }else if(i==tcon.length-1){
-          setFontSizeOnlyOneContainer(tcon[i], fontSize, null, selection.endOffset);
-        }else{
-           setFontSizeOnlyOneContainer(tcon[i], fontSize, null, null);
-        }
+      setFSParagraphs(selection, fontSize)
+    }
+  }else{
+    alert('Неправильно сформирован документ, попробуйте перезагрузить страницу!');
+  }
+}
+
+function getParentParagraph(MaxParent, element){
+  var res = null;
+  var node;
+  for (node = element; node; node = node.parentNode){
+    if (node == MaxParent){
+      if(isElementParagraph(node)){
+        res=node;
+      }
+      break;
+    }else{
+      if(isElementParagraph(node)){
+        res=node;
+        break;
       }
     }
   }
-
-  for(var i=0;i<scon.length;i++){
-    //console.log(scon[i]);
-    if(scon[i].textContent.length==0){
-      scon[i].remove();
-    }
-    if(getParentSpan(selection,scon[i])!=null){
-      console.log(getParentSpan(selection,scon[i]));
-    }
-    if(scon[i].childNodes.length>0){
-
-      for(var j=0;j<scon[i].childNodes.length;j++){
-        if(scon[i].childNodes[j].textContent.length==0){
-          scon[i].childNodes[j].remove();
-        }else{
-          if(isElementSPAN(scon[i].childNodes[j])){
-            //console.log(scon[i].childNodes[j].innerHTML)
-          }
-
-        }
+  if(res==null){
+    for(var i=0;i<10;i++){
+      node = node.parentNode
+      if(isElementParagraph(node)){
+        res=node;
+        break;
       }
     }
   }
-
-}
-
-function setFontSizeOnlyOneContainer(element, fontSize, startOffset, endOffset){
-  var startT=0;
-  var endT =element.textContent.length;
-  if(startOffset!=null){
-    startT=startOffset;
-  }
-  if(endOffset!=null){
-    endT=endOffset;
-  }
-
-  RemoveAnotherSpan(element, fontSize, startT, endT);
-
-	var eSpan =isElementSPAN(element)||isElementSPAN(element.parentElement);
-	var allE =startT==0 && endT==element.parentElement.textContent.length;
-	if(eSpan&&allE){
-		if(isElementSPAN(element)){
-			element.style.fontSize=fontSize+'pt';
-		}else{
-			element.parentElement.style.fontSize=fontSize+'pt';
-		}
-	}else{
-		var ostn =document.createTextNode(element.textContent.substring(0,startT));
-		var spst =CreateSpan(element.textContent.substring(startT, endT),fontSize);
-		var ostk=document.createTextNode(element.textContent.substring(endT));
-		if(isElementSPAN(element)){
-      element.insertBefore(ostk,element);
-      element.insertBefore(spst,ostk);
-			element.insertBefore(ostn,spst);
-		}else{
-       element.parentElement.insertBefore(ostk,element);
-       element.parentElement.insertBefore(spst,ostk);
-			 element.parentElement.insertBefore(ostn,spst);
-
-      try{
-      element.textContent=null;
-        if(elem.nodeName=='#text'){
-        element.remove();//it need thats no null text element
-      }
-      }catch{}
-
-
-		}
-
-	}
-
-}//for text in only one
-
-function RemoveAnotherSpan(element, fontSize, startOffset, endOffset){
-  if(startOffset==0&&endOffset==element.textContent.length){
-    if(isElementSPAN(element)){
-
-       }else if(isElementSPAN(element.parentElement)&&isElementSPAN(element.parentElement.parentElement)){
-          //&&element.parentElement.parentElement.style.fontSize==fontSize+'pt'
-    //console.log(element.parentElement);
-  }
-}
-}
-
-function isElementSPAN(element){
-  var res = false;
-  try{
-    res = element.tagName=='SPAN';
-  }catch{}
   return res;
 }
 
-function CreateSpan(text, fs){
-  var sp=document.createElement("span");
-    sp.style.fontSize=fs+'pt';
-    sp.innerHTML=text;
-  return sp;
+function removeFSInSpan(element){
+  if(isElementSPAN(element)){
+    element.style.fontSize='';
+  }
+  removeStyle(element);
+  if(element.children.length){
+    for(var i=0;i<element.children.length;i++)
+      try{
+      removeFSInSpan(element.children[i])
+      }catch{
+
+      }
+  }
+}
+
+function removeStyle(element){
+  try{
+    if(element.style.length==0){
+      element.removeAttribute('style');
+    }
+    var ena =!element.hasAttributes();
+    if(isElementSPAN(element)&&ena){
+      var ostn =document.createTextNode(element.textContent);
+      element.parentElement.insertBefore(ostn,element);
+      element.remove();
+    }
+
+  }catch{}
+}
+
+function setFSParagraph(par, fontSize){
+  removeFSInSpan(par);
+  par.style.fontSize=fontSize+'pt';
+  console.log(par);
 }
 
 function getNextNode(node){
     if (node.firstChild)
         return node.firstChild;
-    while (node)
-    {
+    while (node){
         if (node.nextSibling)
             return node.nextSibling;
         node = node.parentNode;
@@ -136,14 +94,11 @@ function getNodesInRange(range){
     var commonAncestor = range.commonAncestorContainer;
     var nodes = [];
     var node;
-
-    for (node = start; node; node = getNextNode(node))
-    {
+    for (node = start; node; node = getNextNode(node)){
         nodes.push(node);
         if (node == end)
             break;
     }
-
     return nodes;
 }
 
@@ -158,35 +113,133 @@ function getTextContainersInRange(range){
   return res;
 }
 
-function getSpansInRange(range){
+function getParagraphsInRange(range){
    var res=[];
+  var fp =getParentParagraph(range.commonAncestorContainer, range.startContainer);
+  if(fp!=null){
+    res.push(fp);
+  }
    var arrR=getNodesInRange(range);
   for(var i=0;i<arrR.length;i++){
-    if(isElementSPAN(arrR[i])){
+    if(isElementParagraph(arrR[i])){
       res.push(arrR[i]);
     }
   }
 
   return res;
+
 }
 
-function getParentSpan(range,element){
-  var res=null;
-  var start = range.startContainer;
-  var end = range.commonAncestorContainer;
-  var commonAncestor = range.commonAncestorContainer;
-  var node;
-  var i=0;
-  for (node = element; node; node = node.parentNode){
-    if (node == end){break;}else{
-      if(isElementSPAN(node)&&i>0){
-        res=node;
-        break;
+function CreateSpan(text, fs){
+  var sp=document.createElement("span");
+    sp.style.fontSize=fs+'pt';
+    sp.innerHTML=text;
+  return sp;
+}
+
+function isElementSPAN(element){
+  var res = false;
+  try{
+    res = element.tagName=='SPAN';
+  }catch{}
+  return res;
+}
+
+function setFSParagraphs(range, fontSize){
+  var phs = getParagraphsInRange(range);
+  for(var i in phs){
+    if(i==0){
+      if(phs.length==1){
+        setFSToContainers(getTextContainersInParagraph(range, phs[0]), fontSize, range.startOffset, range.endOffset);
+      }else{
+        setFSToContainers(getTextContainersInParagraph(range, phs[0]), fontSize, range.startOffset, null);
       }
+    }else if(i==phs.length-1){
+      setFSToContainers(getTextContainersInParagraph(range, phs[i]), fontSize, null, range.endOffset);
+    }else{
+      setFSParagraph(phs[i], fontSize);
     }
-    i++;
   }
 
+}
 
+function getTextContainersInParagraph(range, par){
+  var res=[];
+  var tc =getTextContainersInRange(range);
+  for(var i in tc){
+    if(getParentParagraph(range.commonAncestorContainer,tc[i])==par){
+      res.push(tc[i]);
+    }
+  }
   return res;
+}
+
+function setFSToContainers(containers, fontSize, startOffset, endOffset ){
+  for(var i in containers){
+   if(i==0){
+     if(containers.length==1){
+       setFSWithOffsetContainer(containers[0], fontSize, startOffset, endOffset);
+     }else{
+       setFSWithOffsetContainer(containers[0], fontSize, startOffset, null);
+     }
+   }else if(i==containers.length-1){
+     setFSWithOffsetContainer(containers[i], fontSize, null, endOffset);
+   }else{
+     setFSToAllContainer(containers[i], fontSize);
+   }
+  }
+}
+
+function setFSToAllContainer(container, fontSize){
+  if(isElementSPAN(container.parentNode)){
+    container.parentNode.style.fontSize= fontSize+'pt';
+  }else{
+    var sp=CreateSpan(container.textContent,fontSize);
+    container.parentElement.insertBefore(sp,container);
+    removetextContentContainer(container);
+
+  }
+}
+
+function setFSWithOffsetContainer(container, fontSize, startOffset, endOffset){
+  if(startOffset==null){
+    startOffset=0;
+  }
+  if(endOffset==null){
+    endOffset=container.textContent.length;
+  }
+  if(startOffset==0&&endOffset==container.textContent.length){
+    setFSToAllContainer(container, fontSize);
+  }else{
+    if(startOffset==0){
+      var spst =CreateSpan(container.textContent.substring(startOffset, endOffset),fontSize);
+		  var ostk=document.createTextNode(container.textContent.substring(endOffset));
+      container.parentElement.insertBefore(ostk,container);
+      container.parentElement.insertBefore(spst,ostk);
+      removetextContentContainer(container);
+    }else if(endOffset==container.textContent.length){
+      var ostn =document.createTextNode(container.textContent.substring(0,startOffset));
+		  var spst =CreateSpan(container.textContent.substring(startOffset),fontSize);
+      container.parentElement.insertBefore(spst,container);
+			container.parentElement.insertBefore(ostn,spst);
+      removetextContentContainer(container);
+    }else{
+      var ostn =document.createTextNode(container.textContent.substring(0,startOffset));
+		  var spst =CreateSpan(container.textContent.substring(startOffset, endOffset),fontSize);
+		  var ostk=document.createTextNode(container.textContent.substring(endOffset));
+      container.parentElement.insertBefore(ostk,container);
+      container.parentElement.insertBefore(spst,ostk);
+			container.parentElement.insertBefore(ostn,spst);
+      removetextContentContainer(container);
+    }
+  }
+}
+
+function removetextContentContainer(element){
+  try{
+      element.textContent=null;
+        if(elem.nodeName=='#text'){
+        element.remove();//it need thats no null text element
+      }
+      }catch{}
 }
